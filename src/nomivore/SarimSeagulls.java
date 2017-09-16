@@ -9,7 +9,7 @@ import java.awt.*;
 import java.util.concurrent.Callable;
 
 @Script.Manifest(
-        name = "SarimSeagulls", properties = "author=nomviore; client=4;",
+        name = "SarimSeagulls", properties = "author=nomviore; topic=1337958; client=4;",
         description = "Attacks seagulls, banks bones")
 public class SarimSeagulls extends PollingScript<ClientContext> implements PaintListener, MessageListener {
 

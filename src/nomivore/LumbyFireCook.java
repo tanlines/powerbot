@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Script.Manifest(
-        name = "LumbyFireCook", properties = "author=nomviore; client=4;",
+        name = "LumbyFireCook", properties = "author=nomviore; topic=1337958; client=4;",
         description = "Lights fires and cooks at lumby bank")
 public class LumbyFireCook extends PollingScript<ClientContext> implements PaintListener, MessageListener {
 
