@@ -27,10 +27,22 @@ public class ID {
             FISHING_NET = 303,
     TINDERBOX = 590;
 
-    // RAW FISH
+    // RAW FOOD
     public static final int
-    RAW_ANCHOVY = 321,
-    RAW_SHRIMP = 317;
+RAW_CHICKEN = 2138,
+RAW_BEEF = 2132,
+RAW_ANCHOVY = 321,
+RAW_SHRIMP = 317,
+RAW_SARDINE = 327,
+RAW_SALMON = 331,
+RAW_TROUT = 335,
+RAW_COD =341,
+RAW_HERRING = 345,
+RAW_PIKE = 349,
+RAW_TUNA = 359,
+RAW_BASS = 363,
+RAW_LOBSTER = 377,
+RAW_SWORDFISH = 371;
 
     //OBJECTS
     public static final int

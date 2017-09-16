@@ -11,7 +11,7 @@ import java.util.concurrent.Callable;
 @Script.Manifest(
         name = "SarimSeagulls", properties = "author=nomviore; client=4;",
         description = "Attacks seagulls, banks bones")
-public class SarimSeagulls extends PollingScript<ClientContext> implements PaintListener {
+public class SarimSeagulls extends PollingScript<ClientContext> implements PaintListener, MessageListener {
 
     private final int[] npcs = ID.SEAGULL;
     private final int loot = ID.BONES;
@@ -20,10 +20,18 @@ public class SarimSeagulls extends PollingScript<ClientContext> implements Paint
     private final Tile bankTile = new Tile(3045,3235);
     private int hpXP;
     private int looted;
+    private int buried;
     private String state = "";
+    private int action;
 
     @Override
     public void start() {
+        final SarimSeagullsGUI gui = new SarimSeagullsGUI(ctx);
+
+        while(!gui.done()) {
+            Condition.sleep();
+        }
+        action = gui.returnAction();
         hpXP = ctx.skills.experience(Constants.SKILLS_HITPOINTS);
     }
 
@@ -104,28 +112,49 @@ public class SarimSeagulls extends PollingScript<ClientContext> implements Paint
                     }
                 }
                 break;
+            case BURY:
+                ctx.inventory.select().id(ID.BONES).poll().interact("Bury");
+                Condition.sleep(1000);
+                break;
             case WAIT:
 //                Condition.sleep(1000);
                 break;
         }
     }
 
+    @Override
+    public void messaged(MessageEvent me) {
+        if (me.text().contains("bury")) {
+            buried++;
+        }
+    }
+
     private enum State {
-        ATTACK, WAIT, WALK, BANK, LOOT
+        ATTACK, WAIT, WALK, BANK, LOOT, BURY
     }
 
     private State getState() {
-        if (ctx.inventory.select().count() < 28 && !ctx.groundItems.select(2).id(loot).isEmpty() && !ctx.players.local().interacting().valid()) {
-            state = "Looting";
-            return State.LOOT;
+        if (action == 1 || action == 2) {
+            if (ctx.inventory.select().count() < 28 && !ctx.groundItems.select(2).id(loot).isEmpty() && !ctx.players.local().interacting().valid()) {
+                state = "Looting";
+                return State.LOOT;
+            }
         }
         if (ctx.inventory.select().count() < 28 && destTile.distanceTo(ctx.players.local()) > 7 && !ctx.players.local().interacting().valid()) {
             state = "Walking";
             return State.WALK;
         }
-        if (ctx.inventory.select().count() >= 28) {
-            state = "Banking";
-            return State.BANK;
+
+        if (action == 1) {
+            if (ctx.inventory.select().count() >= 28) {
+                state = "Banking";
+                return State.BANK;
+            }
+        } else if (action == 2) {
+            if (ctx.inventory.select().id(loot).count() >= 1) {
+                state = "Burying";
+                return State.BURY;
+            }
         }
         if (ctx.players.local().animation() == -1 && !ctx.players.local().inMotion() && !ctx.players.local().interacting().valid()) {
             state = "Attacking";
@@ -149,7 +178,8 @@ public class SarimSeagulls extends PollingScript<ClientContext> implements Paint
         g.setColor(Color.WHITE);
         g.drawString(String.format("Runtime %02d:%02d:%02d", h, m, s), 10, 120);
         g.drawString(String.format("State %s", state), 10, 140);
-        g.drawString(String.format("Banked %d", looted), 10, 160);
+        if (action == 1) g.drawString(String.format("Banked %d", looted), 10, 160);
+        if (action == 2) g.drawString(String.format("Buried %d", buried), 10, 160);
 
         g.setColor(Color.BLACK);
         AlphaComposite alphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f);

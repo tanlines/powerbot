@@ -6,6 +6,8 @@ import org.powerbot.script.rt4.ClientContext;
 
 import java.awt.*;
 import java.util.concurrent.Callable;
+import java.util.ArrayList;
+import java.util.List;
 
 @Script.Manifest(
         name = "LumbyFireCook", properties = "author=nomviore; client=4;",
@@ -16,9 +18,10 @@ public class LumbyFireCook extends PollingScript<ClientContext> implements Paint
     private final Tile bankTile = new Tile(3208,3220,2);
 
     private int[] toolID = {ID.TINDERBOX};
-    private int[] foodIDs = {ID.RAW_SHRIMP};
+//    private int[] foodIDs = {ID.RAW_SHRIMP};
+    public static List<Integer> foodIDs = new ArrayList<>();
+    private int foodToCook;
     private int foodCooked;
-    private int foodToCook = foodIDs[0];
     private int level;
     private int skill = Constants.SKILLS_COOKING;
     private int startExp;
@@ -28,7 +31,13 @@ public class LumbyFireCook extends PollingScript<ClientContext> implements Paint
     @Override
     public void start() {
         startExp = ctx.skills.experience(skill);
+        final LumbyFireCookGUI gui = new LumbyFireCookGUI(ctx);
 
+        while(!gui.done()) {
+            Condition.sleep();
+        }
+
+        foodToCook = foodIDs.get(0);
     }
 
     @Override
@@ -54,7 +63,7 @@ public class LumbyFireCook extends PollingScript<ClientContext> implements Paint
             case ACTION:
 //                Condition.sleep(nap);
                 final int temp = foodCooked;
-                Item food = ctx.inventory.select().id(foodIDs).poll();
+                Item food = ctx.inventory.select().id(foodToCook).poll();
                 GameObject fire = ctx.objects.select().id(ID.FIRE).nearest().poll();
                 food.interact("Use");
                 fire.interact(interact);
@@ -76,7 +85,7 @@ public class LumbyFireCook extends PollingScript<ClientContext> implements Paint
                     Condition.wait(new Callable<Boolean>() {
                         @Override
                         public Boolean call() throws Exception {
-                            return ctx.inventory.select().id(foodIDs).isEmpty() || ctx.chat.canContinue() || ctx.objects.select(3).id(ID.FIRE).isEmpty();
+                            return ctx.inventory.select().id(foodToCook).isEmpty() || ctx.chat.canContinue() || ctx.objects.select(3).id(ID.FIRE).isEmpty();
                         }
                     }, 1000, 30);
                 }
@@ -116,17 +125,17 @@ public class LumbyFireCook extends PollingScript<ClientContext> implements Paint
     }
 
     private State getState() {
-        if (ctx.inventory.select().id(foodIDs).count() > 0 && ctx.inventory.select().id(toolID).count() > 0 && destTile.distanceTo(ctx.players.local()) > 3) {
+        if (ctx.inventory.select().id(foodToCook).count() > 0 && ctx.inventory.select().id(toolID).count() > 0 && destTile.distanceTo(ctx.players.local()) > 3) {
             return State.WALK;
         }
-        if (ctx.inventory.select().id(foodIDs).count() == 0 || ctx.inventory.select().id(toolID).isEmpty()) {
+        if (ctx.inventory.select().id(foodToCook).count() == 0 || ctx.inventory.select().id(toolID).isEmpty()) {
             return State.BANK;
         }
         if (ctx.objects.select(7).id(ID.FIRE).isEmpty() &&
                 ctx.inventory.select().id(toolID).count() > 0) {
             return State.FIRE;
         }
-        if (ctx.inventory.select().id(foodIDs).count() > 0 &&
+        if (ctx.inventory.select().id(foodToCook).count() > 0 &&
                 ctx.players.local().animation() == -1 &&
                 ctx.inventory.select().id(toolID).count() > 0) {
             return State.ACTION;
@@ -139,7 +148,7 @@ public class LumbyFireCook extends PollingScript<ClientContext> implements Paint
         if (me.text().contains("fire catches")) {
             lit = true;
         }
-        if (me.text().contains("lly ")) {
+        if (me.text().contains("You ") && !me.text().contains("logs") && !me.text().contains("space")) {
             foodCooked++;
         }
     }
@@ -157,18 +166,16 @@ public class LumbyFireCook extends PollingScript<ClientContext> implements Paint
 
         int exp = ctx.skills.experience(skill) - startExp;
         int expHr = (int)(exp*3600000D/getRuntime());
-
         g.setColor(Color.WHITE);
         g.drawString(String.format("Runtime %02d:%02d:%02d", h, m, s), 10, 120);
-
         g.drawString(String.format("Food cooked %d", foodCooked) , 10, 140);
-        g.drawString(String.format("Cooking level %d", level) , 10, 180);
-        g.drawString(String.format("Exp %d/hr", expHr) , 10, 200);
+        g.drawString(String.format("Cooking level %d", level) , 10, 160);
+        g.drawString(String.format("Exp %d/hr", expHr) , 10, 180);
 
         g.setColor(Color.BLACK);
         AlphaComposite alphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f);
         g.setComposite(alphaComposite);
-        g.fillRect(5, 100, 200, 120);
+        g.fillRect(5, 100, 200, 100);
     }
 
     public void openNearbyBank() {
