@@ -183,12 +183,12 @@ public class Prayer extends ClientAccessor {
 		HAWK_EYE(25, 26),
 		MYSTIC_LORE(26, 27),
 		EAGLE_EYE(27, 44),
-		MYSTIC_MIGHT(27, 45),
-		RIGOUR(31, 74),
+		MYSTIC_MIGHT(28, 45),
 		CHIVALRY(29, 60),
 		PIETY(30, 70),
-		AUGURY(33, 77),
-		PRESERVE(34, 55);
+		RIGOUR(31, 74),
+		AUGURY(32, 77),
+		PRESERVE(33, 55);
 		private final int index;
 		private final int level;
 
