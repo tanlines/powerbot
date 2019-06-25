@@ -37,48 +37,12 @@ public class LocalPath extends Path {
 		final int floor = client.getFloor();
 		final CollisionMap[] maps = client.getCollisionMaps();
 		final CollisionMap map;
-		if (maps == null || floor < 0 || floor >= maps.length || (map = maps[floor]) == null) {
+		final Tile base = ctx.game.mapOffset();
+		if (maps == null || floor < 0 || floor >= maps.length || (map = maps[floor]) == null || base == Tile.NIL) {
 			return null;
 		}
 		final int[][] arr = map.getFlags();
-		final double[][] costs = getCosts(ctx, arr.length, arr.length);
-		return arr != null ? new Graph(arr, costs, map.getOffsetX(), map.getOffsetY()) : null;
-	}
-
-	static double[][] getCosts(final ClientContext ctx, final int w, final int h) {
-		final Client client = ctx.client();
-		final Landscape landscape = client.getLandscape();
-		final org.powerbot.bot.rt4.client.Tile[][][] tiles;
-		final int floor = client.getFloor();
-		final org.powerbot.bot.rt4.client.Tile[][] rows;
-		if (landscape == null || (tiles = landscape.getTiles()) == null ||
-				floor < 0 || floor > tiles.length || (rows = tiles[floor]) == null) {
-			return new double[0][0];
-		}
-		final double[][] arr = new double[w][h];
-		for (int x = 0; x < Math.min(w, rows.length); x++) {
-			final org.powerbot.bot.rt4.client.Tile[] row = rows[x];
-			if (row == null) {
-				continue;
-			}
-			final int h2 = row.length;
-			for (int y = 0; y < Math.min(h, h2); y++) {
-				final org.powerbot.bot.rt4.client.Tile tile = row[y];
-				if (tile == null) {
-					continue;
-				}
-
-				if (tile.getGameObjectLength() > 0 ||
-						tile.getBoundaryObject() != null || tile.getWallObject() != null) {
-					for (int dx = Math.max(0, x - 1); dx <= Math.min(w - 1, x + 1); dx++) {
-						for (int dy = Math.max(0, y - 1); dy <= Math.min(h - 1, y + 1); dy++) {
-							arr[dx][dy] += Random.nextDouble();
-						}
-					}
-				}
-			}
-		}
-		return arr;
+		return arr != null ? new Graph(arr, base.x(), base.y()) : null;
 	}
 
 	static void dijkstra(final Graph graph, final Node source, final Node target) {
@@ -109,7 +73,7 @@ public class LocalPath extends Path {
 				final double ng = node.g + ((neighbor.x - node.x == 0 || neighbor.y - node.y == 0) ? 1d : sqrt2);
 
 				if (!neighbor.opened || ng < neighbor.g) {
-					neighbor.g = ng + graph.getNodeCost(node.x, node.y);
+					neighbor.g = ng;
 					neighbor.h = 0;//no heuristic
 					neighbor.f = neighbor.g + neighbor.h;
 					neighbor.parent = node;
@@ -184,31 +148,27 @@ public class LocalPath extends Path {
 				(nodeStop = graph.getNode(end.x(), end.y())) != null) {
 			dijkstra(graph, nodeStart, nodeStop);
 			path = follow(nodeStop);
-		} else {
-			path = new Node[0];
-		}
-		if (path.length > 0) {
-			final Tile[] arr = new Tile[path.length];
-			for (int i = 0; i < path.length; i++) {
-				arr[i] = base.derive(path[i].x, path[i].y);
+			if (path.length > 0) {
+				final Tile[] arr = new Tile[path.length];
+				for (int i = 0; i < path.length; i++) {
+					arr[i] = base.derive(path[i].x, path[i].y);
+				}
+				tilePath = new TilePath(ctx, arr);
+				return true;
 			}
-			tilePath = new TilePath(ctx, arr);
-			return true;
 		}
 		return false;
 	}
 
 	static final class Graph {
 		private final int offX, offY;
-		private final double[][] costs;
 		private final Node[][] nodes;
 		private final int width, height;
 
-		private Graph(final int[][] flags, final double[][] costs, final int offX, final int offY) {
+		private Graph(final int[][] flags, final int offX, final int offY) {
 			this.offX = offX;
 			this.offY = offY;
 			nodes = new Node[flags.length][];
-			this.costs = costs;
 			width = flags.length;
 			int height = flags.length;
 			for (int x = 0; x < flags.length; x++) {
@@ -222,18 +182,9 @@ public class LocalPath extends Path {
 			this.height = height;
 		}
 
-		private double getNodeCost(final int x, final int y) {
-			final int ox = x + offX, oy = y + offY;
-			if (ox >= 0 && oy >= 0 && ox < costs.length && oy < costs[ox].length) {
-				return costs[ox][oy];
-			}
-			return 0d;
-		}
-
 		Node getNode(final int x, final int y) {
-			final int ox = x - offX, oy = y - offY;
-			if (ox >= 0 && oy >= 0 && ox < nodes.length && oy < nodes[ox].length) {
-				return nodes[ox][oy];
+			if (x >= 0 && y >= 0 && x < nodes.length && y < nodes[x].length) {
+				return nodes[x][y];
 			}
 			return null;
 		}
